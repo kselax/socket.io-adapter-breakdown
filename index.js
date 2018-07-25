@@ -2,13 +2,14 @@
 /**
  * Module dependencies.
  */
-
+// this is a node.js default class.
+// link https://nodejs.org/dist/latest-v8.x/docs/api/events.html#events_class_eventemitter
 var Emitter = require('events').EventEmitter;
 
 /**
  * Module exports.
  */
-
+// export Adapter
 module.exports = Adapter;
 
 /**
@@ -20,8 +21,8 @@ module.exports = Adapter;
 
 function Adapter(nsp){
   this.nsp = nsp;
-  this.rooms = {};
-  this.sids = {};
+  this.rooms = {}; // rooms object
+  this.sids = {}; // sids object
   this.encoder = nsp.server.encoder;
 }
 
@@ -29,6 +30,7 @@ function Adapter(nsp){
  * Inherits from `EventEmitter`.
  */
 
+// The __proto__ property of Object.prototype is an accessor property (a getter function and a setter function) that exposes the internal [[Prototype]] (either an object or null) of the object through which it is accessed.
 Adapter.prototype.__proto__ = Emitter.prototype;
 
 /**
@@ -39,8 +41,9 @@ Adapter.prototype.__proto__ = Emitter.prototype;
  * @param {Function} callback
  * @api public
  */
-
+// the function accepts id room fn and return function this.addAll
 Adapter.prototype.add = function(id, room, fn){
+  // this.addAll - the inner function
   return this.addAll(id, [ room ], fn);
 };
 
@@ -54,13 +57,22 @@ Adapter.prototype.add = function(id, room, fn){
  */
 
 Adapter.prototype.addAll = function(id, rooms, fn){
+  //pass the array of rooms in the loop
   for (var i = 0; i < rooms.length; i++) {
     var room = rooms[i];
+    // this.sids[id] = this.sids[id] == false than {} (this.sids[id] equl an empty object)
     this.sids[id] = this.sids[id] || {};
-    this.sids[id][room] = true;
+    this.sids[id][room] = true; // room true
+    // Room is a constructor that has inside this.sockets{} and this.lengths = 0
+    // if this room is a false than then will run the constructor and the object
+    // the object will have the initiale data
     this.rooms[room] = this.rooms[room] || Room();
+    // add is a Room.prototype.add the function that add a socket to the room
     this.rooms[room].add(id);
   }
+  // if exist the clalback function bind to her
+  // the fn will be called after executing the global socpe functions
+  // fn functin will not have a this inside. because the first argument is a null
   if (fn) process.nextTick(fn.bind(null, null));
 };
 
@@ -74,8 +86,12 @@ Adapter.prototype.addAll = function(id, rooms, fn){
  */
 
 Adapter.prototype.del = function(id, room, fn){
+  // if this sids[id] == false than initialize a new object
   this.sids[id] = this.sids[id] || {};
-  delete this.sids[id][room];
+  delete this.sids[id][room]; // delete from sids[id][room]
+  // The hasOwnProperty() method returns a boolean indicating whether the object has the specified property as its own property (as opposed to inheriting it).
+  // if the this.rooms has property this.rooms.room than return true
+  // it means the object was added this.rooms.room opposed inheriting
   if (this.rooms.hasOwnProperty(room)) {
     this.rooms[room].del(id);
     if (this.rooms[room].length === 0) delete this.rooms[room];
@@ -229,6 +245,7 @@ Adapter.prototype.clientRooms = function(id, fn){
 */
 
 function Room(){
+  // this
   if (!(this instanceof Room)) return new Room();
   this.sockets = {};
   this.length = 0;
@@ -240,7 +257,7 @@ function Room(){
  * @param {String} socket id
  * @api private
  */
-
+// the function add a socket to a room
 Room.prototype.add = function(id){
   if (!this.sockets.hasOwnProperty(id)) {
     this.sockets[id] = true;
@@ -254,7 +271,7 @@ Room.prototype.add = function(id){
  * @param {String} socket id
  * @api private
  */
-
+// the function delete from a room a user
 Room.prototype.del = function(id){
   if (this.sockets.hasOwnProperty(id)) {
     delete this.sockets[id];
