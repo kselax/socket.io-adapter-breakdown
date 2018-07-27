@@ -23,6 +23,8 @@ function Adapter(nsp){
   this.nsp = nsp;
   this.rooms = {}; // rooms object
   this.sids = {}; // sids object
+  // nsp.server.encoder should be redis({ host: 'localhost', port: 6379 }
+  // it's like pass some our object
   this.encoder = nsp.server.encoder;
 }
 
@@ -96,7 +98,7 @@ Adapter.prototype.del = function(id, room, fn){
     this.rooms[room].del(id);
     if (this.rooms[room].length === 0) delete this.rooms[room];
   }
-
+  // put the callblack function to execute afther stack
   if (fn) process.nextTick(fn.bind(null, null));
 };
 
@@ -109,17 +111,19 @@ Adapter.prototype.del = function(id, room, fn){
  */
 
 Adapter.prototype.delAll = function(id, fn){
+  // maybe sids[id] has an object rooms with the room list where a user is
   var rooms = this.sids[id];
-  if (rooms) {
-    for (var room in rooms) {
+  if (rooms) { // if exist rooms
+    for (var room in rooms) { // pass the rooms elements by one
       if (this.rooms.hasOwnProperty(room)) {
+        // del is an object Room function that removes an element from a room object
         this.rooms[room].del(id);
         if (this.rooms[room].length === 0) delete this.rooms[room];
       }
     }
   }
-  delete this.sids[id];
-
+  delete this.sids[id]; // remobe the socket
+  // run the user callback function after the main stack
   if (fn) process.nextTick(fn.bind(null, null));
 };
 
@@ -136,7 +140,7 @@ Adapter.prototype.delAll = function(id, fn){
  */
 
 Adapter.prototype.broadcast = function(packet, opts){
-  var rooms = opts.rooms || [];
+  var rooms = opts.rooms || []; // list of rooms to broadcast to
   var except = opts.except || [];
   var flags = opts.flags || {};
   var packetOpts = {
@@ -145,18 +149,20 @@ Adapter.prototype.broadcast = function(packet, opts){
     compress: flags.compress
   };
   var ids = {};
-  var self = this;
+  var self = this; // assign to self all of variables above
   var socket;
 
   packet.nsp = this.nsp.name;
   this.encoder.encode(packet, function(encodedPackets) {
-    if (rooms.length) {
-      for (var i = 0; i < rooms.length; i++) {
+    if (rooms.length) { // if exist rooms
+      for (var i = 0; i < rooms.length; i++) { // pass in the loop
         var room = self.rooms[rooms[i]];
         if (!room) continue;
         var sockets = room.sockets;
         for (var id in sockets) {
           if (sockets.hasOwnProperty(id)) {
+            // ~ operator NOT ~5 return -5
+            // indexOF return the index
             if (ids[id] || ~except.indexOf(id)) continue;
             socket = self.nsp.connected[id];
             if (socket) {
@@ -187,6 +193,7 @@ Adapter.prototype.broadcast = function(packet, opts){
  */
 
 Adapter.prototype.clients = function(rooms, fn){
+  // The typeof operator returns a string indicating the type of the unevaluated operand.
   if ('function' == typeof rooms){
     fn = rooms;
     rooms = null;
@@ -202,8 +209,8 @@ Adapter.prototype.clients = function(rooms, fn){
     for (var i = 0; i < rooms.length; i++) {
       var room = this.rooms[rooms[i]];
       if (!room) continue;
-      var sockets = room.sockets;
-      for (var id in sockets) {
+      var sockets = room.sockets; // get the sockets from the room
+      for (var id in sockets) { // get the id in sockets
         if (sockets.hasOwnProperty(id)) {
           if (ids[id]) continue;
           socket = this.nsp.connected[id];
@@ -214,7 +221,7 @@ Adapter.prototype.clients = function(rooms, fn){
         }
       }
     }
-  } else {
+  } else { // pass to every room
     for (var id in this.sids) {
       if (this.sids.hasOwnProperty(id)) {
         socket = this.nsp.connected[id];
@@ -222,7 +229,7 @@ Adapter.prototype.clients = function(rooms, fn){
       }
     }
   }
-
+  // put callback functin execute after the main stack
   if (fn) process.nextTick(fn.bind(null, null, sids));
 };
 
@@ -235,6 +242,7 @@ Adapter.prototype.clients = function(rooms, fn){
  */
 Adapter.prototype.clientRooms = function(id, fn){
   var rooms = this.sids[id];
+  // in the callback function you can get rooms
   if (fn) process.nextTick(fn.bind(null, null, rooms ? Object.keys(rooms) : null));
 };
 
